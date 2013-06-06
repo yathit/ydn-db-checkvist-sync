@@ -1,0 +1,100 @@
+<project name="checkvist" basedir="." default="compile-dev">
+    <dirname property="checkvist.dir" file="${ant.file.checkvist}"/>
+    <property name="work.dir" location="${checkvist.dir}/.." />
+    <property name="ydn-base.dir" location="${work.dir}/ydn-base" />
+    <property name="ydn-db.dir" location="${work.dir}/ydn-db" />
+    <import file="${ydn-base.dir}/build.xml"/>
+    <import file="${ydn-db.dir}/build.xml"/>
+
+    <property name="sync-dev-out.fn"
+              value="${ydn-db.dir}/jsc/${buildno}-ydn.db-dev-sync.js"/>
+    <property name="out.dir" location="${work.dir}/ydn-dev/public/jsc"/>
+    <property name="dev-out.fn"
+              value="${ydn-db.dir}/jsc/${buildno}-ydn.db-dev.js"/>
+
+    <target name="compile" description="generates compiled files for client js">
+        <mkdir dir="${ydn-db.dir}/jsc"/>
+        <adv-comp
+                input.dir="${ydn-db.dir}/js"
+                input.fn="${ydn-db.dir}/js/config/main.js"
+                output.dir="${ydn-db.dir}/jsc"
+                output.fn="${buildno}-ydn.db-sync.js"
+                closure.entry="ydn.db.Storage">
+            <ex.opt>
+                <arg line='-i "${checkvist.dir}/js/config/sync.js"'/>
+                <arg line='-i "${work.dir}/ydn-base/js/config/main.js"'/>
+                <arg line='-i "${ydn-db.dir}/js/config/conn.js"'/>
+                <arg line='-i "${ydn-db.dir}/js/config/tr.js"'/>
+                <arg line='-i "${ydn-db.dir}/js/config/crud.js"'/>
+                <arg line='-i "${ydn-db.dir}/js/config/core.js"'/>
+
+                <arg line='-p "${checkvist.dir}/js"'/>
+                <arg line='-p "${work.dir}/ydn/js"'/>
+                <arg line='-f "--externs=${work.dir}/ydn-base/externs/s3.js"'/>
+                <arg line='-f "--define=ydn.db.base.USE_HOOK=true"'/>
+                <arg line='-f "--define=ydn.db.version=${quoted-version}"'/>
+            </ex.opt>
+        </adv-comp>
+    </target>
+
+    <target name="compile-dev" description="compile JS">
+        <mkdir dir="${ydn-db.dir}/jsc"/>
+
+        <closure-compile compilationlevel="ADVANCED_OPTIMIZATIONS"
+                         input="${checkvist.dir}/js/checkvist.js"
+                         input.dir="${checkvist.dir}/js"
+                         output.fn="${sync-dev-out.fn}">
+            <extrapaths>
+                <arg line='-p "${ydn-base.dir}/js"'/>
+                <arg line='-p "${checkvist.dir}/js"'/>
+                <arg line='-p "${work.dir}/ydn/js"'/>
+                <arg line='-f "--externs=${ydn-base.dir}/externs/misc.js"'/>
+                <arg line='-f "--externs=${ydn-db.dir}/externs/misc.js"'/>
+                <arg line='-f "--externs=${ydn-db.dir}/externs/websql.js"'/>
+                <arg line='-f "--externs=${ydn-db.dir}/externs/schema.js"'/>
+                <arg line='-f "--externs=${ydn-base.dir}/externs/atom.js"'/>
+                <arg line='-f "--externs=${work.dir}/ydn-base/externs/s3.js"'/>
+            </extrapaths>
+            <options>
+                <arg line='-f "--closure_entry_point=ydn.db.demo.Checkvist"'/>
+                <arg line='-f "--source_map_format=V3"'/>
+                <arg line='-f "--create_source_map=${sync-dev-out.fn}.map"'/>
+                <arg line='-f "--output_wrapper=${outputwrapper.norun}"'/>
+                <arg line='-f "--define=ydn.db.base.USE_HOOK=true"'/>
+            </options>
+        </closure-compile>
+
+        <concat destfile="${sync-dev-out.fn}" append="true">
+            //@ sourceMappingURL=${sync-dev-out.fn}.map
+        </concat>
+
+        <replace description="replace so with online repo path"
+                 file="${sync-dev-out.fn}.map"
+                 token="/Users/kyawtun/work/ydn-base/"
+                 value="https://bitbucket.org/ytkyaw/ydn-base/raw/master/"/>
+        <replace description="replace so with online repo path"
+                 file="${sync-dev-out.fn}.map"
+                 token="/Users/kyawtun/work/ydn-db/"
+                 value="https://bitbucket.org/ytkyaw/ydn-db/raw/${buildno}/"/>
+        <replace description="replace so with online repo path"
+                 file="${sync-dev-out.fn}.map"
+                 token="/Users/kyawtun/work/closure-library/"
+                 value="https://raw.github.com/yathit/google-closure-library/master/"/>
+
+
+
+    </target>
+
+    <target name="deps" description="list dependency files">
+        <delete file="${checkvist.dir}/js/deps.js"/>
+        <calc-deps
+                input.dir="${checkvist.dir}/js"
+                output.fn="${checkvist.dir}/js/deps.js">
+        </calc-deps>
+    </target>
+
+    <target name="build" description="build all distribution"
+            depends="compile,compile-dev">
+
+    </target>
+</project>

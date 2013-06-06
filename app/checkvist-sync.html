@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CheckVist Sync Demo App</title>
+    <script type="text/javascript" src="../../closure-library/closure/goog/base.js"></script>
+    <script  type="text/javascript" src="../../ydn-base/js/deps.js"></script>
+    <script  type="text/javascript" src="../../ydn-db/js/deps.js"></script>
+    <script  type="text/javascript" src="../../ydn/js/deps.js"></script>
+    <script  type="text/javascript" src="../../ydn-db-sync/js/deps.js"></script>
+    <script  type="text/javascript" src="../js/deps.js"></script>
+</head>
+<body>
+    <header>
+        <h1>CheckVist Sync Demo App</h1>
+    </header>
+    <div>
+        <form id="login-form" name="login-form" method="post">
+            <input type="text" name="login" id="login" />
+            <input type="password" name="pass" id="pass" />
+            <input type="submit" value="Login"/>
+        </form>
+    </div>
+    <script type="text/javascript">
+        goog.require('ydn.debug');
+        goog.require('ydn.db.sync');
+        goog.require('ydn.db.demo.Checkvist');
+    </script>
+    <script type="text/javascript">
+        ydn.db.base.USE_HOOK = true;
+        ydn.debug.log('ydn.db.demo.Checkvist', 'finest');
+        var app = new ydn.db.demo.Checkvist();
+        app.run();
+    </script>
+</body>
+</html>
