@@ -21,50 +21,137 @@
  */
 
 
-goog.provide('ydn.db.demo.Checkvist');
-goog.require('goog.debug.Logger');
-goog.require('goog.net.XhrIo');
-goog.require('ydn.db.Storage');
-
-
 
 /**
  * Create the app.
  * @constructor
  */
-ydn.db.demo.Checkvist = function() {
+var Checkvist = function() {
+  this.session = {};
+
+  this.ele_login_panel = document.getElementById('login-panel');
+  this.ele_username = document.getElementById('username');
+  this.btn_logout = document.getElementById('btn_logout');
+
   var form_ele = document.getElementById('login-form');
   var me = this;
   form_ele.onsubmit = function(e) {
     e.preventDefault();
-    var url = 'http://checkvist.com//auth/login.json';
-    var data = new FormData(e.target);
-    me.logger.info('sending login');
-    goog.net.XhrIo.send(url, function(e) {
-      var xhr = /** @type {goog.net.XhrIo} */ (e.target);
-      window.console.log(xhr.getStatus());
-      window.console.log(xhr.getResponseText());
-    }, 'POST', data);
+    var login = document.getElementById('login').value;
+    var pass = document.getElementById('pass').value;
+    me.login(function(result) {
+      if (result) {
+        form_ele.style.display = 'none';
+      }
+    }, login, pass);
     return false;
   };
 
-  // CORS not enable. crap.
+  var me = this;
+  this.btn_logout.onclick = function(e) {
+    me.session = {};
+    sessionStorage.removeItem('Checkvist.session');
+    me.ele_username.textContent = '';
+    me.btn_logout.style.display = 'none';
+    form_ele.style.display = '';
+  }
+
 };
 
 
 /**
- * @protected
- * @type {goog.debug.Logger} logger.
+ * Do login.
+ * @param {function(string?)} cb callback.
+ * @param {string=} login user name.
+ * @param {string=} pass password.
  */
-ydn.db.demo.Checkvist.prototype.logger =
-    goog.debug.Logger.getLogger('ydn.db.demo.Checkvist');
+Checkvist.prototype.login = function(cb, login, pass) {
+  var params = {};
+  this.session.username = this.session.username || login;
+  this.session.password = this.session.password || pass;
+  this.session.remote_key = this.session.password;
+  this.send('/auth/login.json', function(result) {
+    // console.log(result);
+    if (result) {
+      this.session.remote_key = result;
+      this.ele_username.textContent = this.session.username;
+      this.btn_logout.style.display = '';
+    } else {
+      this.session = {};
+      this.ele_username.textContent = '';
+      this.btn_logout.style.display = 'none';
+    }
+    sessionStorage.setItem('Checkvist.session', JSON.stringify(this.session));
+    cb(result);
+    var me = this;
+    setTimeout(function() {
+      me.refresh();
+    }, 100);
+    //this.send('/auth/curr_user.json', function(data) {
+    //  console.log(data);
+    //});
+  }, 'POST', params);
+};
+
+
+/**
+ * Send request to checkvist server.
+ * @param {string} path
+ * @param {Function} cb callback
+ * @param {string=} method
+ * @param {Object=} params
+ */
+Checkvist.prototype.send = function(path, cb, method, params) {
+  method = method || 'GET';
+  params = params || {};
+  params['username'] = this.session.username;
+  params['remote_key'] = this.session.remote_key;
+  var host = 'beta.checkvist.com';
+  var url = 'https://' + host + path;
+  var query = [];
+  for (var q in params) {
+    query.push(q + '=' + encodeURIComponent(params[q]));
+  }
+  url += '?' + query.join('&');
+  var req = new XMLHttpRequest();
+  req.open(method, url, false);
+  // req.withCredentials = true;
+  var me = this;
+  req.onload = function(e) {
+    // console.log(req.status);
+    // console.log(req.responseText)
+    cb.call(me, JSON.parse(req.responseText));
+  };
+  console.info('sending ' + url);
+  req.send();
+};
+
+
+/**
+ * Refresh UI.
+ */
+Checkvist.prototype.refresh = function() {
+  this.send('/checklists.json', function(checklist) {
+    console.log(checklist);
+  });
+};
 
 
 /**
  * Run the app.
  */
-ydn.db.demo.Checkvist.prototype.run = function() {
-
+Checkvist.prototype.run = function() {
+  var cache = sessionStorage.getItem('Checkvist.session');
+  if (cache) {
+    this.session = JSON.parse(cache);
+    this.btn_logout.style.display = '';
+    var me = this;
+    this.login(function(result) {
+    });
+  } else {
+    this.ele_login_panel.style.display = '';
+    this.btn_logout.style.display = 'none';
+  }
 };
 
 
